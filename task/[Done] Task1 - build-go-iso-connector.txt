@@ -1,0 +1,27 @@
+# Task 1 — Build Go ISO Connector Revarm
+
+Status: Done
+
+## Verification evidence
+- `go test ./...` passed: ISO pack/unpack, TCP client-to-server inquiry, and HTTP `/call` → TCP ISO → upstream HTTP integration.
+- `go vet ./...` passed.
+- `go test -race ./...` passed.
+- `go build -o bin/iso-connector.exe ./cmd/iso-connector` passed.
+- `cmp -s` confirmed `cfg/packager/iso_spec_alto.xml` is byte-identical to the Alcorn reference file.
+- `git diff --check` passed.
+- Structured request/response logging verified in `go test -v ./internal/connector`; logs show HTTP API, TCP ISO client/server, and HTTP upstream boundaries while redacting sensitive ISO fields.
+- SDT network-handshake regression test added: the client must receive SDT `0800/001` and reply `0810/00` before sending `0200`; `go test ./...`, `go vet ./...`, `go test -race ./...`, and binary build pass after the fix.
+
+## Scope
+Reimplement the studied jPOS client/server ISO connector in Go 1.27. Preserve compatibility with `cfg/packager/iso_spec_alto.xml`; run in `client`, `server`, or `both` mode using environment configuration.
+
+## Acceptance criteria
+- ISO 8583 pack/unpack uses field definitions parsed from the ALTO GenericPackager XML.
+- TCP client uses `SERVER_HOST` and `SERVER_PORT`; TCP server uses `ISO_LISTEN_ADDR`/`ISO_PORT`.
+- HTTP `POST /call` accepts and returns JSON field maps.
+- Server accepts `0200`, proxies to `MESSAGE_URL`, and responds `0210`; network `0800` yields a network response.
+- Unit and integration tests plus `go vet ./...` pass under Go 1.27.
+
+## Constraints
+- No deployment, no credentials, and no changes to source repositories.
+- Avoid logging sensitive ISO data in full.
